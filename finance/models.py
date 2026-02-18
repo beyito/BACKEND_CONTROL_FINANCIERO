@@ -31,6 +31,7 @@ class Categoria(models.Model):
     id_categoria = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField(blank=True, null=True)
+    usuario = models.ForeignKey(Usuario,null=True, blank=True, on_delete=models.PROTECT)
 
     class Meta:
         db_table = 'categoria'

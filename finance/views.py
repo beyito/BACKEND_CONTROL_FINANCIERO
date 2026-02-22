@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions
 from django.db.models import Q  # <--- IMPORTANTE
-from .models import Categoria, Moneda, TipoDeuda
-from .serializers import CategoriaSerializer, MonedaSerializer, TipoDeudaSerializer
+from .models import Categoria, Moneda, TipoMovimiento, TipoTransaccion, MetodoPago, CuentaCorriente, MovimientoCuenta
+from .serializers import CategoriaSerializer, MonedaSerializer, TipoMovimientoSerializer, TipoTransaccionSerializer, MetodoPagoSerializer, CuentaCorrienteSerializer, MovimientoCuentaSerializer
 from .permissions import IsOwnerOrGlobalReadOnly, IsAdminOrReadOnly 
 
 class CategoriaViewSet(viewsets.ModelViewSet):
@@ -29,7 +29,27 @@ class MonedaViewSet(viewsets.ModelViewSet):
     # AQUÍ ESTÁ LA MAGIA:
     permission_classes = [IsAdminOrReadOnly]
 
-class TipoDeudaViewSet(viewsets.ModelViewSet):
-    queryset = TipoDeuda.objects.all()
-    serializer_class = TipoDeudaSerializer
+class TipoMovimientoViewSet(viewsets.ModelViewSet):
+    queryset = TipoMovimiento.objects.all()
+    serializer_class = TipoMovimientoSerializer
     permission_classes = [IsAdminOrReadOnly]
+
+class TipoTransaccionViewSet(viewsets.ModelViewSet):
+    queryset = TipoTransaccion.objects.all()
+    serializer_class = TipoTransaccionSerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+class MetodoPagoViewSet(viewsets.ModelViewSet):
+    queryset = MetodoPago.objects.all()
+    serializer_class = MetodoPagoSerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+class CuentaCorrienteViewSet(viewsets.ModelViewSet):
+    queryset = CuentaCorriente.objects.all()
+    serializer_class = CuentaCorrienteSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+# class MovimientoCuentaViewSet(viewsets.ModelViewSet):
+#     queryset = MovimientoCuenta.objects.all()
+#     serializer_class = MovimientoCuentaSerializer
+#     permission_classes = [permissions.IsAuthenticated]

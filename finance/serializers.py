@@ -11,7 +11,7 @@ class CategoriaSerializer(serializers.ModelSerializer):
 class MonedaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Moneda
-        fields = ['id_moneda', 'nombre', 'descripcion']
+        fields = ['id_moneda', 'nombre', 'simbolo']
 
 class TipoMovimientoSerializer(serializers.ModelSerializer): 
     class Meta:
@@ -31,12 +31,23 @@ class MetodoPagoSerializer(serializers.ModelSerializer):
 class CuentaCorrienteSerializer(serializers.ModelSerializer):
     class Meta:
         model = CuentaCorriente
-        fields = ['id_cuenta_corriente', 'persona', 'moneda']
+        fields = ['id_cuenta_corriente', 'persona', 'moneda', 'fecha_registro']
 
-# class MovimientoCuentaSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = MovimientoCuenta
-#         fields = ['id_movimiento_cuenta', 'cuenta_corriente', 'categoria', 'tipo_movimiento', 'fecha_registro', 'monto_inicial', 'saldo_pendiente']
+class MovimientoCuentaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MovimientoCuenta
+        fields = ['id_movimiento_cuenta', 'cuenta_corriente', 'categoria', 'tipo_movimiento', 'fecha_registro', 'monto_inicial', 'saldo_pendiente']
 
-#         read_only_fields = ['saldo_pendiente']
+        read_only_fields = ['fecha_registro','saldo_pendiente']
 
+class TransaccionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaccion
+        fields = ['id_transaccion', 'usuario', 'movimiento_cuenta', 'persona', 'categoria', 'tipo_transaccion', 'metodo_pago', 'moneda', 'fecha_registro', 'monto']
+        
+        extra_kwargs = {
+            'categoria': {'required': False},
+            'moneda': {'required': False},
+            'tipo_transaccion': {'required': False},
+        }
+        read_only_fields = ['fecha_registro', 'usuario']

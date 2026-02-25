@@ -22,6 +22,7 @@ class CuentaCorriente(models.Model):
     id_cuenta_corriente = models.AutoField(primary_key=True)
     persona = models.ForeignKey(Persona, on_delete=models.PROTECT)
     moneda = models.ForeignKey(Moneda, on_delete=models.PROTECT)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'cuenta_corriente'
@@ -44,6 +45,13 @@ class MovimientoCuenta(models.Model):
     monto_inicial = models.DecimalField(max_digits=100, decimal_places=2, default= 0)
     saldo_pendiente = models.DecimalField(max_digits=100, decimal_places=2, default = monto_inicial)
 
+    def save(self, *args, **kwargs):
+        # Si el objeto no tiene ID (es decir, es nuevo y se está creando por primera vez)
+        if not self.pk:
+            # El saldo pendiente inicial será exactamente igual al monto prestado
+            self.saldo_pendiente = self.monto_inicial
+        super().save(*args, **kwargs)
+        
     class Meta:
         db_table = 'movimiento_cuenta'
 

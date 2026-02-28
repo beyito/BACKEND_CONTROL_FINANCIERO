@@ -30,8 +30,9 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-clave-temporal')
 
 DEBUG = os.getenv('DEBUG') == 'True'
 
-ALLOWED_HOSTS = []
 
+# En settings.py
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 

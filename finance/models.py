@@ -36,10 +36,18 @@ class Categoria(models.Model):
     class Meta:
         db_table = 'categoria'
 
+class SubCategoria(models.Model):
+    id_subcategoria = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
+    usuario = models.ForeignKey(Usuario,null=True, blank=True, on_delete=models.PROTECT)
+    categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT)
+    class Meta:
+        db_table = 'subcategoria'
+
 class MovimientoCuenta(models.Model):
     id_movimiento_cuenta = models.AutoField(primary_key=True)
     cuenta_corriente = models.ForeignKey(CuentaCorriente, on_delete=models.PROTECT)
-    categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT)
     tipo_movimiento = models.ForeignKey(TipoMovimiento, on_delete=models.PROTECT)
     fecha_registro = models.DateTimeField(auto_now_add=True)
     monto_inicial = models.DecimalField(max_digits=100, decimal_places=2, default= 0)
@@ -76,7 +84,7 @@ class Transaccion(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.PROTECT)
     movimiento_cuenta = models.ForeignKey(MovimientoCuenta, null=True, blank=True, on_delete=models.PROTECT)
     persona = models.ForeignKey(Persona, null=True, blank=True, on_delete=models.PROTECT)
-    categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT)
+    subcategoria = models.ForeignKey(SubCategoria, on_delete=models.PROTECT)
     tipo_transaccion = models.ForeignKey(TipoTransaccion, on_delete=models.PROTECT)
     metodo_pago = models.ForeignKey(MetodoPago, on_delete=models.PROTECT)
     moneda = models.ForeignKey(Moneda, on_delete=models.PROTECT)

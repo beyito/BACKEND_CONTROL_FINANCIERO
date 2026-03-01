@@ -84,6 +84,7 @@ class MovimientoCuentaViewSet(viewsets.ModelViewSet):
         persona = cuenta.persona
         moneda = cuenta.moneda
         monto = movimiento.monto_inicial
+        concepto = movimiento.concepto
 
         # --- CONSTANTES ---
         # Revisa que estos IDs coincidan con los de tu tabla tipo_movimiento
@@ -127,14 +128,15 @@ class MovimientoCuentaViewSet(viewsets.ModelViewSet):
                     tipo_transaccion_id=tipo_transaccion_id,
                     metodo_pago_id=metodo_pago_id,
                     moneda=moneda,
-                    monto=monto
+                    monto=monto,
+                    concepto=concepto,
                 )
                 
     def get_queryset(self):
         # 1. Seguridad: Solo los movimientos de las cuentas de este usuario
         # (Asumiendo que Persona está vinculada al Usuario)
         queryset = MovimientoCuenta.objects.filter(
-            cuenta_corriente__persona__usuario=self.request.user
+            cuenta_corriente__persona__usuario=self.request.user, activo=True
         )
         
         # 2. Leemos el parámetro de la URL (ej: ?cuenta=5)
@@ -147,14 +149,27 @@ class MovimientoCuentaViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    def perform_destroy(self, instance):
+        # 1. Ocultamos el contrato principal (El préstamo)
+        instance.activo = False
+        instance.save()
 
+        # 2. Buscamos todas las transacciones asociadas a este préstamo
+        # (Django crea automáticamente el sufijo _set para las relaciones inversas)
+        transacciones_asociadas = instance.transaccion_set.all()
+
+        # 3. Ocultamos todas sus transacciones (desembolso inicial y cuotas pagadas)
+        for tx in transacciones_asociadas:
+            tx.activo = False
+            tx.save()
 
 class TransaccionViewSet(viewsets.ModelViewSet):
     serializer_class = TransaccionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Transaccion.objects.filter(usuario=self.request.user).order_by('-fecha_registro')
+        
+        queryset = Transaccion.objects.filter(usuario=self.request.user, activo=True).order_by('-fecha_registro')
         movimiento_cuenta = self.request.query_params.get('movimiento_cuenta')
         if movimiento_cuenta is not None:
             # Como la llave foránea se llama cuenta_corriente, usamos cuenta_corriente_id
@@ -211,11 +226,15 @@ class TransaccionViewSet(viewsets.ModelViewSet):
             prestamo.save()
 
     def perform_destroy(self, instance):
+        # 1. Cambiamos el estado en lugar de borrarlo
+        instance.activo = False
+        instance.save()
+
+        # 2. Revertimos la matemática del préstamo (si aplica)
         if instance.movimiento_cuenta:
             prestamo = instance.movimiento_cuenta
-            prestamo.saldo_pendiente += instance.monto
+            prestamo.saldo_pendiente += instance.monto # Le devolvemos la deuda
             prestamo.save()
-        super().perform_destroy(instance)
 
 
 
@@ -226,7 +245,7 @@ class ResumenDashboardView(APIView):
 
     def get(self, request):
         # Filtramos solo las transacciones del usuario que inició sesión
-        transacciones_usuario = Transaccion.objects.filter(usuario=request.user)
+        transacciones_usuario = Transaccion.objects.filter(usuario=request.user, activo=True)
 
         # 1. Sumamos todas las entradas directamente en la base de datos
         entradas = transacciones_usuario.filter(

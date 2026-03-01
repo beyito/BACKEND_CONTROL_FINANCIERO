@@ -51,7 +51,7 @@ class MovimientoCuentaSerializer(serializers.ModelSerializer):
     class Meta:
         model = MovimientoCuenta
         fields = '__all__'
-        read_only_fields = ['fecha_registro','saldo_pendiente']
+        read_only_fields = ['fecha_registro','saldo_pendiente','activo']
 
         
 
@@ -64,7 +64,7 @@ class TransaccionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaccion
         fields = '__all__' # Esto enviará todos los campos + categoria_nombre
-        read_only_fields = ['fecha_registro', 'usuario']
+        read_only_fields = ['fecha_registro', 'usuario','activo']
         extra_kwargs = {
             'subcategoria': {'required': False},
             'moneda': {'required': False},

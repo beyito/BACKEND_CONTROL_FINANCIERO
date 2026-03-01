@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os    
 from dotenv import load_dotenv 
-
+from datetime import timedelta
 # 3. Cargar el archivo .env
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -24,6 +24,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 
+
+
+SIMPLE_JWT = {
+    # El token de acceso sigue siendo corto por seguridad (ej. 15 minutos o 1 hora)
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30), 
+    
+    # Le damos un tiempo de vida largo al Refresh Token inicial (ej. 90 días)
+    # Si quieres poner 10 años pon: timedelta(days=3650)
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=90), 
+
+    # --- AQUÍ ESTÁ LA MAGIA ---
+    # Cada vez que Flutter pide un nuevo Access Token usando el Refresh Token,
+    # Django le regalará TAMBIÉN un Refresh Token totalmente nuevo.
+    'ROTATE_REFRESH_TOKENS': True, 
+
+    # Invalida el Refresh Token viejo para que un hacker no pueda reutilizarlo
+    'BLACKLIST_AFTER_ROTATION': True, 
+}
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-clave-temporal')
 

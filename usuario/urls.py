@@ -1,7 +1,7 @@
 # usuario/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UsuarioViewSet, PersonaViewSet
+from .views import UsuarioViewSet, PersonaViewSet, MiPerfilView
 
 
 # 1. Creamos el Router
@@ -14,5 +14,5 @@ router.register(r'persona', PersonaViewSet, basename='persona')  # Si tienes un 
 # 3. Definimos las URLs
 urlpatterns = [
     path('', include(router.urls)), # Si tienes un ViewSet para Persona, regístralo aquí también
-
+    path('perfil/', MiPerfilView.as_view(), name='perfil'),
 ]

@@ -52,6 +52,8 @@ class MovimientoCuenta(models.Model):
     fecha_registro = models.DateTimeField(auto_now_add=True)
     monto_inicial = models.DecimalField(max_digits=100, decimal_places=2, default= 0)
     saldo_pendiente = models.DecimalField(max_digits=100, decimal_places=2, default = monto_inicial)
+    concepto = models.TextField(blank=True, null=True)
+    activo = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         # Si el objeto no tiene ID (es decir, es nuevo y se está creando por primera vez)
@@ -90,6 +92,8 @@ class Transaccion(models.Model):
     moneda = models.ForeignKey(Moneda, on_delete=models.PROTECT)
     fecha_registro = models.DateTimeField(auto_now_add=True)
     monto = models.DecimalField(max_digits=100, decimal_places=2)
+    concepto = models.TextField(blank=True, null=True)
+    activo = models.BooleanField(default=True)
     
     class Meta:
         db_table = 'transaccion'

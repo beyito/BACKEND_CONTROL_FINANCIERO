@@ -1,4 +1,5 @@
 # .gitignore
+
 .env
 venv/
 __pycache__/
@@ -6,9 +7,8 @@ __pycache__/
 db.sqlite3
 .DS_Store
 *$py.class
-# --- 4. MIGRACIONES (Lo que pediste) ---
-# Esto ignora todos los archivos dentro de la carpeta migrations...
-**/migrations/*.py
 
-# ...PERO OBLIGA a subir el archivo __init__.py (Necesario para que Python reconozca la carpeta)
-!**/migrations/__init__.py
+# --- MIGRACIONES (Corregido) ---
+# NO ignores las migraciones. Son parte esencial del historial de tu DB.
+# Solo ignoramos los archivos de caché de las migraciones si los hubiera.
+**/migrations/__pycache__/

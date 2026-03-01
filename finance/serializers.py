@@ -59,7 +59,13 @@ class TransaccionSerializer(serializers.ModelSerializer):
     # Añadimos esta línea mágica para extraer el nombre de la categoría
     subcategoria_nombre = serializers.ReadOnlyField(source='subcategoria.nombre')
     tipo_transaccion_nombre = serializers.ReadOnlyField(source='tipo_transaccion.nombre')
+    categoria_padre_nombre = serializers.ReadOnlyField(source='subcategoria.categoria.nombre') 
     
+    # Para el método de pago
+    metodo_pago_nombre = serializers.ReadOnlyField(source='metodo_pago.nombre')
+    
+    # Para la persona (si es que la transacción tiene persona vinculada)
+    persona_nombre = serializers.ReadOnlyField(source='persona.nombre')
     
     class Meta:
         model = Transaccion

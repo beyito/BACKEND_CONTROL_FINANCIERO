@@ -10,8 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
-import os    
+from pathlib import Path   
+import os
+import dj_database_url
 from dotenv import load_dotenv 
 from datetime import timedelta
 # 3. Cargar el archivo .env
@@ -46,11 +47,11 @@ SIMPLE_JWT = {
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-clave-temporal')
 
 
-DEBUG = os.getenv('DEBUG') == 'True'
+# Cambia DEBUG = True por esto:
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-
-# En settings.py
-ALLOWED_HOSTS = ['*']
+# Cambia ALLOWED_HOSTS = [] por esto:
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Application definition
 
@@ -80,6 +81,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -105,16 +107,24 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),      # Lee 'control_financiero'
-        'USER': os.getenv('DB_USER'),      # Lee 'benjamin123413'
-        'PASSWORD': os.getenv('DB_PASSWORD'), # Lee tu contraseña
-        'HOST': os.getenv('DB_HOST'),      # Lee el host largo de Render
-        'PORT': os.getenv('DB_PORT', '5433'), # Usa 5432 si no encuentra nada
-    }
+    'default': dj_database_url.config(
+        default='sqlite:///db.sqlite3',
+        conn_max_age=600
+    )
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.getenv('DB_NAME'),      # Lee 'control_financiero'
+#         'USER': os.getenv('DB_USER'),      # Lee 'benjamin123413'
+#         'PASSWORD': os.getenv('DB_PASSWORD'), # Lee tu contraseña
+#         'HOST': os.getenv('DB_HOST'),      # Lee el host largo de Render
+#         'PORT': os.getenv('DB_PORT', '5433'), # Usa 5432 si no encuentra nada
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -140,4 +150,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 AUTH_USER_MODEL = 'usuario.Usuario'

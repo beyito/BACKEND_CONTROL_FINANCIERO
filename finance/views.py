@@ -171,11 +171,18 @@ class TransaccionViewSet(viewsets.ModelViewSet):
         
         queryset = Transaccion.objects.filter(usuario=self.request.user, activo=True).order_by('-fecha_registro')
         movimiento_cuenta = self.request.query_params.get('movimiento_cuenta')
+        fecha_inicio = self.request.query_params.get('fecha_inicio')
+        fecha_fin = self.request.query_params.get('fecha_fin')
+        
+        if fecha_inicio and fecha_fin:
+            # Filtramos el rango. Usamos "__range" en Django.
+            queryset = queryset.filter(fecha_registro__date__range=[fecha_inicio, fecha_fin])
+
         if movimiento_cuenta is not None:
             # Como la llave foránea se llama cuenta_corriente, usamos cuenta_corriente_id
             queryset = queryset.filter(movimiento_cuenta_id=movimiento_cuenta)
 
-        return queryset
+        return queryset.order_by('-fecha_registro')
 
     def perform_create(self, serializer):
 
@@ -239,32 +246,38 @@ class TransaccionViewSet(viewsets.ModelViewSet):
 
 
 
-
 class ResumenDashboardView(APIView):
-    permission_classes = [IsAuthenticated] # Protegemos la ruta con JWT
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Filtramos solo las transacciones del usuario que inició sesión
+        # 1. Filtramos las transacciones válidas del usuario
         transacciones_usuario = Transaccion.objects.filter(usuario=request.user, activo=True)
 
-        # 1. Sumamos todas las entradas directamente en la base de datos
-        entradas = transacciones_usuario.filter(
-            Q(tipo_transaccion__nombre__icontains='entrada') | 
-            Q(tipo_transaccion__nombre__icontains='ingreso')
-        ).aggregate(total=Sum('monto'))['total'] or 0
+        # 2. LA MAGIA DE DJANGO: Agrupamos por moneda y sumamos condicionalmente en 1 sola consulta
+        resumen = transacciones_usuario.values('moneda').annotate(
+            entradas=Sum('monto', filter=
+                Q(tipo_transaccion__nombre__icontains='entrada') | 
+                Q(tipo_transaccion__nombre__icontains='ingreso')
+            ),
+            salidas=Sum('monto', filter=
+                Q(tipo_transaccion__nombre__icontains='salida') | 
+                Q(tipo_transaccion__nombre__icontains='gasto') |
+                Q(tipo_transaccion__nombre__icontains='egreso')
+            )
+        )
 
-        # 2. Sumamos todas las salidas
-        salidas = transacciones_usuario.filter(
-            Q(tipo_transaccion__nombre__icontains='salida') | 
-            Q(tipo_transaccion__nombre__icontains='gasto') |
-            Q(tipo_transaccion__nombre__icontains='egreso')
-        ).aggregate(total=Sum('monto'))['total'] or 0
+        # 3. Formateamos la respuesta en un diccionario limpio
+        resultado = {}
+        for item in resumen:
+            if item['moneda']: # Validamos que la transacción tenga una moneda asignada
+                moneda_id = str(item['moneda'])
+                entradas = item['entradas'] or 0
+                salidas = item['salidas'] or 0
+                
+                resultado[moneda_id] = {
+                    'saldo_global': float(entradas - salidas),
+                    'total_entradas': float(entradas),
+                    'total_salidas': float(salidas)
+                }
 
-        # 3. Calculamos el saldo global
-        saldo_global = entradas - salidas
-
-        return Response({
-            'saldo_global': float(saldo_global),
-            'total_entradas': float(entradas),
-            'total_salidas': float(salidas)
-        })
+        return Response(resultado)

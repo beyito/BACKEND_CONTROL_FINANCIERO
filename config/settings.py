@@ -52,6 +52,7 @@ DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 # Cambia ALLOWED_HOSTS = [] por esto:
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# ALLOWED_HOSTS = ['*']  # Permitir todas las conexiones (¡Ten cuidado con esto en producción!)
 
 # Application definition
 

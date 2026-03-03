@@ -70,7 +70,7 @@ class TransaccionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaccion
         fields = '__all__' # Esto enviará todos los campos + categoria_nombre
-        read_only_fields = ['fecha_registro', 'usuario','activo']
+        read_only_fields = ['usuario','activo']
         extra_kwargs = {
             'subcategoria': {'required': False},
             'moneda': {'required': False},

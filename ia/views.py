@@ -26,13 +26,18 @@ def procesar_compras_por_voz(request):
     ).values_list('nombre', flat=True))
     lista_categorias_str = ", ".join(nombres_subcategorias)
 
-    # 2. NUEVO: Obtener Personas registradas por este usuario
+    # 2. Obtener Personas registradas por este usuario
     nombres_personas = list(Persona.objects.filter(usuario=request.user).values_list('nombre', flat=True))
     lista_personas_str = ", ".join(nombres_personas) if nombres_personas else "Ninguna persona registrada"
 
-    # 3. PROMPT MEJORADO: Reglas semánticas y de personas
+    # 3. NUEVO: Obtener Monedas disponibles en el sistema y definir la moneda por defecto
+    nombres_monedas = list(Moneda.objects.values_list('nombre', flat=True))
+    lista_monedas_str = ", ".join(nombres_monedas)
     
-    # Esto fuerza la hora a tu zona horaria (ej: 2026-03-02T22:24:18-04:00)
+    moneda_default = Moneda.objects.first()
+    nombre_moneda_default = moneda_default.nombre if moneda_default else "Bolivianos"
+
+    # 4. PROMPT MEJORADO
     fecha_hora_actual = timezone.localtime(timezone.now()).isoformat()
 
     prompt = f"""
@@ -50,14 +55,11 @@ def procesar_compras_por_voz(request):
        - "subcategoria": (Elige de esta lista: [{lista_categorias_str}]). 
          REGLA DE CONTEXTO: Si dice "le presté", usa 'Préstamo'. Si dice "le di" o "regalé", usa 'Regalo', A MENOS QUE se especifique el propósito (ej. "le di para pasaje" -> 'Transporte'). La prioridad es el propósito del gasto.
        - "persona": (Busca en: [{lista_personas_str}]. Si no está, devuelve null).
-       - "fecha_registro": (Calcula la fecha y hora si el usuario indica un tiempo en el pasado, como "ayer" o "hace una hora". Usa esta fecha y hora actual como punto de partida: "{fecha_hora_actual}". Devuelve el resultado ESTRICTAMENTE en formato ISO 8601 INCLUYENDO EL DESFASE HORARIO. Tiene que mantener exactamente la misma estructura y el mismo desfase que la fecha de partida. Si el usuario no menciona fecha ni hora, devuelve exactamente esta cadena: "{fecha_hora_actual}").
+       - "moneda": (Identifica la moneda. Elige de esta lista: [{lista_monedas_str}]. Si dice "bs" o "bolivianos", usa la opción que corresponda. Si el usuario NO especifica ninguna moneda en el texto, asume por defecto "{nombre_moneda_default}").
+       - "fecha_registro": (Calcula la fecha y hora si el usuario indica un tiempo en el pasado, como "ayer". Usa esta fecha y hora actual como punto de partida: "{fecha_hora_actual}". Devuelve el resultado ESTRICTAMENTE en formato ISO 8601 INCLUYENDO EL DESFASE HORARIO. Si no menciona fecha, devuelve exactamente esta cadena: "{fecha_hora_actual}").
     """
 
     try:
-        # response = client.models.generate_content(
-        #     model="gemini-3-flash-preview",
-        #     contents=prompt,
-        # )
         response = client.models.generate_content(
             model="gemini-2.5-flash", 
             contents=prompt,
@@ -75,17 +77,16 @@ def procesar_compras_por_voz(request):
     except Exception as e:
         return Response({'error': f'Error al procesar con IA: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    # 4. Guardar en la Base de Datos incluyendo la Persona
+    # 5. Guardar en la Base de Datos
     transacciones_creadas = 0
     try:
-        moneda_default = Moneda.objects.first()
         metodo_pago_default = MetodoPago.objects.first()
 
         for item in datos_json:
             tipo_obj = TipoTransaccion.objects.filter(nombre__icontains=item['tipo_transaccion']).first()
             subcat_obj = SubCategoria.objects.filter(nombre__icontains=item['subcategoria']).first()
             
-            # NUEVO: Buscar el objeto Persona si la IA detectó a alguien
+            # Buscar Persona
             persona_obj = None
             if item.get('persona'):
                 persona_obj = Persona.objects.filter(
@@ -93,15 +94,19 @@ def procesar_compras_por_voz(request):
                     nombre__icontains=item['persona']
                 ).first()
 
+            # NUEVO: Buscar Moneda devuelta por la IA (con fallback a la default por si acaso)
+            moneda_str = item.get('moneda')
+            moneda_obj = Moneda.objects.filter(nombre__icontains=moneda_str).first() if moneda_str else moneda_default
+
             Transaccion.objects.create(
                 usuario=request.user,
                 monto=item['monto'],
                 concepto=item['concepto'],
                 tipo_transaccion=tipo_obj,
                 subcategoria=subcat_obj,
-                persona=persona_obj, # <-- Guardamos la persona aquí
-                fecha_registro=item.get('fecha_registro', timezone.now()), # <-- AGREGAMOS LA FECHA AQUÍ
-                moneda=moneda_default,
+                persona=persona_obj, 
+                fecha_registro=item.get('fecha_registro', timezone.now()), 
+                moneda=moneda_obj or moneda_default, # <-- Guardamos la moneda detectada
                 metodo_pago=metodo_pago_default
             )
             transacciones_creadas += 1

@@ -21,7 +21,8 @@ from django.urls import path, include
 from django.urls import path
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,  # <--- Esta es tu vista de LOGIN
-    TokenRefreshView,     # <--- Esta es para refrescar el token
+    TokenRefreshView, 
+    TokenVerifyView,    # <--- Esta es para refrescar el token
 )
 
 def home(request):
@@ -51,6 +52,7 @@ urlpatterns = [
     path('api/', include('usuario.urls')),
     path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('finance/', include('finance.urls')),
     path('ia/', include('ia.urls')),  # Agrega esta línea para incluir las URLs de tu app "ia"
 ]

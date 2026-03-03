@@ -70,6 +70,10 @@ class CuentaCorrienteViewSet(viewsets.ModelViewSet):
     serializer_class = CuentaCorrienteSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        # Solo las cuentas corrientes vinculadas a personas del usuario actual
+        return CuentaCorriente.objects.filter(persona__usuario=self.request.user)
+
 class MovimientoCuentaViewSet(viewsets.ModelViewSet):
     queryset = MovimientoCuenta.objects.all()
     serializer_class = MovimientoCuentaSerializer

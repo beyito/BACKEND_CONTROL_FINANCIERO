@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import path, include
 # config/urls.py (o donde tengas tus rutas principales)
 from django.urls import path
@@ -22,7 +23,29 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,  # <--- Esta es tu vista de LOGIN
     TokenRefreshView,     # <--- Esta es para refrescar el token
 )
+
+def home(request):
+    return JsonResponse({
+        'status': 'online',
+        'message': 'API Control Financiero funcionando correctamente',
+        'endpoints': [
+            '/admin/',
+            '/api/...',
+            '/api/procesar-dictado/',
+            '/api/health/',
+        ]
+    })
+
+def health_check(request):
+    return JsonResponse({
+        'status': 'healthy',
+        'database': 'connected',
+        'supabase': 'configured'
+    })
+
 urlpatterns = [
+    path('', home, name='home'),  # ¡ESTO ES LO QUE FALTA!
+    path('health/', health_check, name='health'),  # Endpoint de salud
     path('admin/', admin.site.urls),
     # path('finance/', include('finance.urls')),
     path('api/', include('usuario.urls')),

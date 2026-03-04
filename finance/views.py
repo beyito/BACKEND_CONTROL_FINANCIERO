@@ -78,6 +78,7 @@ class MovimientoCuentaViewSet(viewsets.ModelViewSet):
     queryset = MovimientoCuenta.objects.all()
     serializer_class = MovimientoCuentaSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
     def perform_create(self, serializer):
         # 1. Guardamos el Movimiento de Cuenta (el "contrato")
         movimiento = serializer.save()
@@ -246,7 +247,65 @@ class TransaccionViewSet(viewsets.ModelViewSet):
             prestamo = instance.movimiento_cuenta
             prestamo.saldo_pendiente += instance.monto # Le devolvemos la deuda
             prestamo.save()
+            
+    def perform_update(self, serializer):
+        # Constantes de subcategorías (Ajusta los IDs si en tu BD son diferentes)
+        # Asumimos que 44 y 45 son pagos/cuotas. Cualquier otra es la transacción Padre.
+        SUBCATEGORIA_COBRO_DEUDA_ID = 44
+        SUBCATEGORIA_PAGO_DEUDA_ID = 45
 
+        # 1. Recuperar los datos ANTES de que se modifiquen
+        transaccion_antigua = self.get_object()
+        monto_antiguo = transaccion_antigua.monto
+        movimiento_antiguo = transaccion_antigua.movimiento_cuenta
+        subcat_antigua_id = transaccion_antigua.subcategoria_id
+
+        # 2. Guardar los nuevos datos
+        transaccion_nueva = serializer.save()
+
+        # 3. La Matemática Avanzada
+        if movimiento_antiguo == transaccion_nueva.movimiento_cuenta:
+            # CASO A: Mismo préstamo
+            if transaccion_nueva.movimiento_cuenta:
+                prestamo = transaccion_nueva.movimiento_cuenta
+                es_cuota = transaccion_nueva.subcategoria_id in [SUBCATEGORIA_COBRO_DEUDA_ID, SUBCATEGORIA_PAGO_DEUDA_ID]
+                
+                if es_cuota:
+                    # Es un PAGO: Anulamos el pago viejo y restamos el pago nuevo
+                    prestamo.saldo_pendiente = prestamo.saldo_pendiente + monto_antiguo - transaccion_nueva.monto
+                else:
+                    # Es el CAPITAL INICIAL (Transacción Padre)
+                    diferencia = transaccion_nueva.monto - monto_antiguo
+                    prestamo.monto_inicial += diferencia
+                    # Si el préstamo total sube, la deuda pendiente sube exactamente igual
+                    prestamo.saldo_pendiente += diferencia 
+                    
+                prestamo.save()
+
+        else:
+            # CASO B: Cambió de préstamo vinculado (Muy raro, pero a prueba de balas)
+            
+            # A. Revertimos los números en el préstamo viejo
+            if movimiento_antiguo:
+                es_cuota_antigua = subcat_antigua_id in [SUBCATEGORIA_COBRO_DEUDA_ID, SUBCATEGORIA_PAGO_DEUDA_ID]
+                if es_cuota_antigua:
+                    movimiento_antiguo.saldo_pendiente += monto_antiguo # Le devolvemos la cuota
+                else:
+                    movimiento_antiguo.monto_inicial -= monto_antiguo # Le quitamos el capital
+                    movimiento_antiguo.saldo_pendiente -= monto_antiguo
+                movimiento_antiguo.save()
+            
+            # B. Aplicamos los números al préstamo nuevo
+            if transaccion_nueva.movimiento_cuenta:
+                prestamo_nuevo = transaccion_nueva.movimiento_cuenta
+                es_cuota_nueva = transaccion_nueva.subcategoria_id in [SUBCATEGORIA_COBRO_DEUDA_ID, SUBCATEGORIA_PAGO_DEUDA_ID]
+                
+                if es_cuota_nueva:
+                    prestamo_nuevo.saldo_pendiente -= transaccion_nueva.monto
+                else:
+                    prestamo_nuevo.monto_inicial += transaccion_nueva.monto
+                    prestamo_nuevo.saldo_pendiente += transaccion_nueva.monto
+                prestamo_nuevo.save()
 
 
 

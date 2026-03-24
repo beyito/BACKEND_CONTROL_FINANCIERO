@@ -7,6 +7,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum, Q
+from rest_framework.pagination import PageNumberPagination
+
+# 1. Creamos la regla de paginación
+class TransaccionPagination(PageNumberPagination):
+    page_size = 20 # Cuántas transacciones enviar por página
+    page_size_query_param = 'page_size' # Permite a Flutter pedir más si lo necesita (?page_size=50)
+    max_page_size = 100 # Límite de seguridad
 
 class CategoriaViewSet(viewsets.ModelViewSet):
     serializer_class = CategoriaSerializer
@@ -171,7 +178,8 @@ class MovimientoCuentaViewSet(viewsets.ModelViewSet):
 class TransaccionViewSet(viewsets.ModelViewSet):
     serializer_class = TransaccionSerializer
     permission_classes = [permissions.IsAuthenticated]
-
+    pagination_class = TransaccionPagination
+    
     def get_queryset(self):
         
         queryset = Transaccion.objects.filter(usuario=self.request.user, activo=True).order_by('-fecha_registro')

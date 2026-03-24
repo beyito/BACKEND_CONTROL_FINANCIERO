@@ -15,6 +15,31 @@ class TransaccionPagination(PageNumberPagination):
     page_size_query_param = 'page_size' # Permite a Flutter pedir más si lo necesita (?page_size=50)
     max_page_size = 100 # Límite de seguridad
 
+    def get_paginated_response(self, data):
+        # Esta variable contiene TODAS las transacciones ya filtradas (ignorando la página actual)
+        queryset = self.page.paginator.object_list
+
+        # Sumamos todos los ingresos usando la base de datos (Súper rápido)
+        ingresos = queryset.filter(
+            Q(tipo_transaccion__nombre__icontains='ingreso') | 
+            Q(tipo_transaccion__nombre__icontains='entrada')
+        ).aggregate(total=Sum('monto'))['total'] or 0.0
+
+        # Sumamos todos los egresos
+        egresos = queryset.filter(
+            Q(tipo_transaccion__nombre__icontains='egreso') | 
+            Q(tipo_transaccion__nombre__icontains='salida')
+        ).aggregate(total=Sum('monto'))['total'] or 0.0
+
+        return Response({
+            'count': self.page.paginator.count,
+            'next': self.get_next_link(),
+            'previous': self.get_previous_link(),
+            'total_ingresos': float(ingresos), # <-- ¡NUEVO!
+            'total_egresos': float(egresos),   # <-- ¡NUEVO!
+            'results': data
+        })
+
 class CategoriaViewSet(viewsets.ModelViewSet):
     serializer_class = CategoriaSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrGlobalReadOnly]
@@ -179,7 +204,7 @@ class TransaccionViewSet(viewsets.ModelViewSet):
     serializer_class = TransaccionSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = TransaccionPagination
-    
+
     def get_queryset(self):
         
         queryset = Transaccion.objects.filter(usuario=self.request.user, activo=True).order_by('-fecha_registro')

@@ -219,6 +219,30 @@ class TransaccionViewSet(viewsets.ModelViewSet):
         if movimiento_cuenta is not None:
             # Como la llave foránea se llama cuenta_corriente, usamos cuenta_corriente_id
             queryset = queryset.filter(movimiento_cuenta_id=movimiento_cuenta)
+            
+        # 2. Moneda
+        moneda = self.request.query_params.get('moneda')
+        if moneda:
+            queryset = queryset.filter(moneda_id=moneda)
+            
+        # 3. Tipo de Transacción
+        tipo = self.request.query_params.get('tipo_transaccion')
+        if tipo:
+            queryset = queryset.filter(tipo_transaccion_id=tipo)
+            
+        # 4. Persona
+        persona = self.request.query_params.get('persona')
+        if persona:
+            queryset = queryset.filter(persona_id=persona)
+            
+        # 5. Subcategoría y Categoría
+        subcategoria = self.request.query_params.get('subcategoria')
+        categoria = self.request.query_params.get('categoria')
+        if subcategoria:
+            queryset = queryset.filter(subcategoria_id=subcategoria)
+        elif categoria: 
+            # Si no hay subcategoría pero sí categoría, viajamos a la tabla padre
+            queryset = queryset.filter(subcategoria__categoria_id=categoria)
 
         return queryset.order_by('-fecha_registro')
 
